@@ -32,6 +32,25 @@ docker run --rm --gpus all -p 8080:8080 -e IPLANT_USER=$USER harbor.cyverse.org/
 
 Then open <http://localhost:8080> (no password — VICE's ingress handles auth). In VICE, register the tool on port **8080**.
 
+## DE tool settings
+
+These live in the Discovery Environment, not in this repo, and must match the image. Change them only together with the Dockerfile.
+
+| Setting | Value |
+| --- | --- |
+| DE app | **MESA VS Code** (`0e974a32-b92c-11f1-9ce0-008cfa5ae3e1`) |
+| DE tool | `mesa-vscode` (`fee62806-b92b-11f1-96c8-008cfa5ae3e1`) |
+| Image | `harbor.cyverse.org/vice/mesa-vscode:latest` |
+| Type | interactive |
+| Container port | **8080** |
+| Working directory | `/home/vscode/data-store` (the Data Store CSI mount point; must match the Dockerfile `WORKDIR`) |
+| UID | 1000 |
+| Entrypoint override | none (the image's own startup script does the MESA per-user setup) |
+| Max CPU | 16 cores (upstream `vice/vscode`) |
+| Memory limit | 16 GiB (DE user cap; upstream 64 GiB) |
+
+code-server runs with `--bind-addr 0.0.0.0:8080`; `config.yaml`'s `127.0.0.1:8080` is overridden.
+
 ## Sign in to CyVerse
 
 ```bash
