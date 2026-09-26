@@ -1,0 +1,10 @@
+# clangd user config (~/.config/clangd/config.yaml) for the clangd extension:
+# CUDA defaults for .cu/.cuh files. clangd
+# 18 otherwise assumes sm_35, which CUDA 12 dropped, and reports an error on
+# line 1 of every CUDA file. sm_86 = the DE's A16 GPUs. The flags are appended
+# to compile_commands.json commands too; a project .clangd can drop them
+# (CompileFlags: Remove: [...]).
+If:
+  PathMatch: [.*\.cu, .*\.cuh]
+CompileFlags:
+  Add: [-xcuda, --cuda-gpu-arch=sm_86, --no-cuda-version-check]

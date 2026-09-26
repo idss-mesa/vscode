@@ -1,0 +1,4 @@
+{
+  "python.defaultInterpreterPath": "/opt/conda/envs/pytorch/bin/python",
+  "continue.telemetryEnabled": false
+}

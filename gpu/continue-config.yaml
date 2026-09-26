@@ -1,0 +1,30 @@
+# Continue (continue.continue) — chat / edit with a local model served by this
+# container's Ollama on the GPU (MESA VS Code GPU image). Nothing leaves the pod.
+# Pull the model once per analysis:  ollama-setup        (default qwen3.5:9b)
+#                                    ollama-setup MODEL  (any other model)
+# "Ollama (any pulled model)" lists whatever `ollama list` shows.
+# Reference: https://docs.continue.dev/reference
+name: MESA local GPU
+version: 1.0.0
+schema: v1
+models:
+  - name: Qwen3.5 9B (local GPU)
+    provider: ollama
+    model: qwen3.5:9b
+    apiBase: http://127.0.0.1:11434
+    roles:
+      - chat
+      - edit
+      - apply
+    capabilities:
+      - tool_use
+    defaultCompletionOptions:
+      contextLength: 32768
+  - name: Ollama (any pulled model)
+    provider: ollama
+    model: AUTODETECT
+    apiBase: http://127.0.0.1:11434
+    roles:
+      - chat
+      - edit
+      - apply
