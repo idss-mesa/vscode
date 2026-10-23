@@ -39,7 +39,7 @@ These live in the Discovery Environment, not in this repo, and must match the im
 | Setting | Value |
 | --- | --- |
 | DE app | **MESA VS Code** (`011736c4-b936-11f1-a4f5-008cfa5ae3e1`) |
-| DE tool (version `1.0.0`) | `mesa-vscode` (`e2386a66-b935-11f1-a355-008cfa5ae3e1`) |
+| DE tool (version `1.1.0`) | `mesa-vscode` (`e2386a66-b935-11f1-a355-008cfa5ae3e1`) |
 | Image | `harbor.cyverse.org/vice/mesa-vscode:latest` |
 | Type | interactive (`interactive: true`) |
 | Network mode | `bridge` (Terrain's default `none` gives an analysis that runs but never serves) |
@@ -53,6 +53,8 @@ These live in the Discovery Environment, not in this repo, and must match the im
 | Memory limit | 16 GiB (DE user cap; upstream 64 GiB) |
 
 code-server runs with `--bind-addr 0.0.0.0:8080`; `config.yaml`'s `127.0.0.1:8080` is overridden.
+
+An older `mesa-vscode` tool on the same image (`fee62806-b92b-11f1-96c8-008cfa5ae3e1`, version `latest`) is not used by either MESA app.
 
 ## Sign in to CyVerse
 
@@ -172,7 +174,8 @@ The GPU DE app is a copy of **MESA VS Code** pointing at a GPU tool. [`gpu/de-to
 
 | Setting | Value |
 | --- | --- |
-| DE tool (version `1.0.0`) | `mesa-vscode-gpu` |
+| DE app | **MESA VS Code (GPU)** (`70e38306-ba88-11f1-acc5-008cfa5ae3e1`, private) |
+| DE tool (version `1.1.0`) | `mesa-vscode-gpu` (`6fda247e-ba88-11f1-acf7-008cfa5ae3e1`) |
 | Image | `harbor.cyverse.org/vice/mesa-vscode:gpu` |
 | GPUs | `min_gpus` = `max_gpus` = **1** (with `min_gpus` unset the launch default of 0 gives no GPU) |
 | GPU model | `gpu_models: ["NVIDIA-A16"]` (must be listed by `GET /terrain/tools/gpu-models`) |
