@@ -464,6 +464,11 @@ t5() {
 }
 check "T5 no GPU" "code-server starts; mesa-gpu-check reports the missing GPU (non-zero, no crash); compat stays off" t5
 
+echo; echo "-- T6 MESA MCP stack"
+# MESA MCP stack: /opt/mesa imports mesa-mcp + mesa-ducklake on DuckDB 2.x (catalogs it writes are DuckDB 2-only)
+t6() { docker run --rm --entrypoint /opt/mesa/bin/python "$IMAGE" -c "import duckdb, mesa_mcp, mesa_ducklake; from importlib.metadata import version as v; assert duckdb.__version__.startswith('2.'), 'duckdb ' + duckdb.__version__; print('mesa-mcp', v('mesa-mcp'), 'mesa-ducklake', v('mesa-ducklake'), 'duckdb', duckdb.__version__)"; }
+check "T6 mesa-mcp DuckDB 2" "mesa-mcp + mesa-ducklake import on DuckDB 2.x" t6
+
 # ---------------------------------------------------------------------------
 echo
 echo "== Summary: $IMAGE (GPU=$GPU)"
