@@ -75,7 +75,7 @@ RUN /opt/conda/bin/mamba create -y -p /opt/conda/envs/pytorch -c conda-forge --o
     grep -iE '^(torch|torchvision)==' /tmp/torch-constraints.txt > /tmp/torch-core.txt && \
     /opt/conda/envs/pytorch/bin/pip install --no-cache-dir -c /tmp/torch-constraints.txt --extra-index-url "${TORCH_INDEX_URL}" \
         transformers accelerate datasets peft sentence-transformers safetensors bitsandbytes \
-        lightning timm torchmetrics cupy-cuda12x nvitop nvidia-ml-py huggingface_hub ollama ipykernel && \
+        lightning timm torchmetrics cupy-cuda12x nvitop nvidia-ml-py huggingface_hub ollama ipykernel "duckdb>=2,<3" && \
     /opt/conda/envs/pytorch/bin/pip check && \
     /opt/conda/envs/pytorch/bin/pip freeze | grep -iE '^(torch|torchvision)==' | diff /tmp/torch-core.txt - && \
     kname=$(/opt/conda/envs/pytorch/bin/python -c 'import re, torch; v = re.match(r"\d+\.\d+", torch.__version__).group(); print(f"PyTorch {v} (CUDA {torch.version.cuda})")') && \
