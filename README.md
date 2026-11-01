@@ -108,7 +108,7 @@ It validates the key against `/v1/models`, lists your models, and writes `~/.con
 | **Host driver, not a baked one** | Purges the NVIDIA R580 driver userspace that `:latest` bakes in (`nvidia-driver-535` is a transitional package on Ubuntu 24.04 that installs R580). `libcuda`/NVML come from the host driver the NVIDIA runtime injects, so `nvidia-smi`, `nvtop` and NVML work on any driver branch. An apt pin ([`/etc/apt/preferences.d/mesa-no-nvidia-driver`](gpu/common/apt-no-nvidia-driver.pref)) makes apt refuse `nvidia-driver-*`, the driver's `libnvidia-*` libraries and `cuda-drivers` (which `cuda-12-x` pulls in), so `sudo apt install` cannot re-bake it in a session; install `cuda-toolkit-12-x` instead. To install driver packages on purpose anyway, `sudo rm` that file first |
 | **CUDA** | CUDA 12.5 toolkit on `PATH` (`nvcc`, `cuda-gdb`, `compute-sanitizer`, Nsight CLIs), `CUDA_HOME=/usr/local/cuda`; NVIDIA's CUDA 13.4 forward-compat driver (`cuda-compat-13-4`), enabled only when needed (below) |
 | **PyTorch env** | `/opt/conda/envs/pytorch` (Python 3.13): PyTorch 2.14 + torchvision (CUDA 12.6 build), transformers, accelerate, datasets, peft, sentence-transformers, safetensors, bitsandbytes, lightning, timm, torchmetrics, CuPy, nvitop, huggingface_hub, ollama, duckdb 2.x. The default VS Code interpreter and a Jupyter kernel **PyTorch 2.14 (CUDA 12.6)** |
-| **Local LLMs** | [Ollama](https://ollama.com) 0.34.4 (pinned, sha256-checked tarball; the `install.sh` user and systemd unit are removed), started on `127.0.0.1:11434` at launch; `ollama-setup` wires Claude Code, Codex and OpenCode to it |
+| **Local LLMs** | [Ollama](https://ollama.com) 0.40.11 (pinned, sha256-checked tarball; the `install.sh` user and systemd unit are removed), started on `127.0.0.1:11434` at launch; `ollama-setup` wires Claude Code, Codex and OpenCode to it |
 | **VS Code extensions** | NVIDIA Nsight (CUDA debugging), clangd (C++/CUDA IntelliSense; `~/.config/clangd/config.yaml` sets CUDA defaults for `.cu`/`.cuh`) and CMake Tools with `clangd`/`cmake`/`ninja`, [Continue](https://continue.dev) pre-configured for the local Ollama model (`~/.continue/config.yaml`) |
 | **Diagnostics** | `mesa-gpu-check`, `nvtop`, `nvitop` (from the PyTorch env, linked onto `PATH`), a GPU panel on the terminal landing screen |
 
@@ -146,7 +146,7 @@ mesa-gpu-check --ollama   # also pull qwen3:0.6b and confirm it runs 100% on the
 ### CUDA and driver compatibility
 
 - **PyTorch** is the CUDA 12.6 build (cu126): it runs on any driver ≥ R525, i.e. both the R535 T4 test host and R580+ nodes, and covers sm_50–sm_90 (T4, A100, A16, H100; not Blackwell). A plain `pip install torch` from PyPI would pull the CUDA 13 build (needs R580+); add `--extra-index-url https://download.pytorch.org/whl/cu126` when installing packages that depend on torch.
-- **Ollama 0.34.4** needs R550+ for its CUDA 12 runner and R580+ for CUDA 13; other CUDA 13 software needs R580+. On pre-R580 hosts, at startup `/etc/profile.d/mesa-gpu-env.sh` puts the forward-compat driver (`/usr/local/cuda-13.4/compat`) on `LD_LIBRARY_PATH`, but only when the host's CUDA driver API is < 13 **and** `cuInit` works with it (data-center GPUs such as A16, A100, T4). R580+ hosts are left alone. The IDE and its terminals inherit it from the entrypoint; `docker exec`/`kubectl exec` `bash -i` shells get it from `/etc/bash.bashrc`. Opt out with `MESA_DISABLE_CUDA_COMPAT=1` (a container variable, see above; on pre-R580 hosts Ollama then runs on the CPU; PyTorch and SASS-built kernels still use the GPU).
+- **Ollama 0.40.11** needs R550+ for its CUDA 12 runner and R580+ for CUDA 13; other CUDA 13 software needs R580+. On pre-R580 hosts, at startup `/etc/profile.d/mesa-gpu-env.sh` puts the forward-compat driver (`/usr/local/cuda-13.4/compat`) on `LD_LIBRARY_PATH`, but only when the host's CUDA driver API is < 13 **and** `cuInit` works with it (data-center GPUs such as A16, A100, T4). R580+ hosts are left alone. The IDE and its terminals inherit it from the entrypoint; `docker exec`/`kubectl exec` `bash -i` shells get it from `/etc/bash.bashrc`. Opt out with `MESA_DISABLE_CUDA_COMPAT=1` (a container variable, see above; on pre-R580 hosts Ollama then runs on the CPU; PyTorch and SASS-built kernels still use the GPU).
 - **nvcc** (12.5): build real SASS for the GPUs you run on, e.g. `nvcc -gencode arch=compute_86,code=sm_86 ...` for the A16 (add `-gencode arch=compute_75,code=sm_75` for T4, `arch=compute_80,code=sm_80` for A100, or use `-arch=native`). PTX-only builds (`code=compute_XX`, and nvcc's default target on these GPUs) need a driver that can JIT CUDA 12.5 PTX (R555+) or the forward-compat driver, which is on by default on pre-R580 hosts; otherwise the kernel never runs (`cudaErrorUnsupportedPtxVersion`, silent unless you check launch errors).
 
 ### Build & publish from a GPU server
@@ -166,8 +166,8 @@ make push-gpu
 - `gpu/test-gpu.sh` checks: host driver libs and nothing baked (T1), start as VICE does (T2), `mesa-gpu-check --ollama` (T3), nvcc SASS kernel, extensions + `nvtop`/`nvitop`, PyTorch env, Jupyter kernel, user config, clangd, the apt driver pin (T4a–g), the pin file and `apt-cache policy` (T4h; both apt checks are SKIPped without network), `docker exec bash -i` shells: forward-compat env as in the IDE and `nvitop` on `PATH` (T4i), and a start without a GPU (T5).
 - CI alternative: the manual [`harbor-gpu`](.github/workflows/harbor-gpu.yml) workflow (Actions → harbor-gpu → Run workflow) builds on the digest of `:latest` and pushes `:gpu`, without a GPU test.
 - `:gpu` is **not** rebuilt when `:latest` is: rebuild it after CPU image changes.
-- Ollama drift: `:latest`'s weekly rebuild installs the newest Ollama. If `make build-gpu` then warns `the CPU image ships Ollama X, not v0.34.4`, the pinned tarball replaces it: `:gpu` grows by ~2.2 GB (to ~27.7 GB) and ships the older, pinned Ollama. To avoid that, set `ARG OLLAMA_VERSION` to the CPU image's version and `ARG OLLAMA_SHA256` to the `ollama-linux-amd64.tar.zst` line of that release's `sha256sum.txt` (`curl -fsSL https://github.com/ollama/ollama/releases/download/vX/sha256sum.txt`) in `gpu/Dockerfile`, then rebuild. Each version `ARG` is declared just above the first layer that uses it, and the CUDA compat and Ollama layers come after the PyTorch env, so an Ollama or `CUDA_COMPAT_VERSION` bump does not rebuild or re-push the 8.2 GB PyTorch layer.
-- Size: about 25.5 GB uncompressed (CPU `:latest`: 16.2 GB); the GPU layers add 9.4 GB (PyTorch env 8.2 GB, CUDA compat + clangd/cmake 0.8 GB, extensions 0.4 GB). That is above the ~24 GB per-image budget only because of the CPU base: its baked driver packages (~1.1 GB) stay in the base layers, so purging them in a child layer saves nothing; dropping `nvidia-driver-*` from `latest/Dockerfile` would shrink both images. The CPU image's `install.sh` Ollama is reused when it is byte-identical to the pinned tarball, so it is not stored twice; the 25.5 GB assumes `:latest` still ships Ollama 0.34.4.
+- Ollama: `latest/Dockerfile` and `gpu/Dockerfile` pin the same sha256-checked release tarball (`ARG OLLAMA_VERSION` / `OLLAMA_SHA256`; `install.sh` is no longer used anywhere). Keep the two pins equal: if `make build-gpu` warns `the CPU image ships Ollama X, not vY`, the GPU layer stores a second 2.2 GB copy. Bump both from the release's `sha256sum.txt` (`curl -fsSL https://github.com/ollama/ollama/releases/download/vX/sha256sum.txt`), then rebuild. Each version `ARG` is declared just above the first layer that uses it, and the CUDA compat and Ollama layers come after the PyTorch env, so an Ollama or `CUDA_COMPAT_VERSION` bump does not rebuild or re-push the 8.2 GB PyTorch layer.
+- Size: about 25.5 GB uncompressed (CPU `:latest`: 16.2 GB); the GPU layers add 9.4 GB (PyTorch env 8.2 GB, CUDA compat + clangd/cmake 0.8 GB, extensions 0.4 GB). That is above the ~24 GB per-image budget only because of the CPU base: its baked driver packages (~1.1 GB) stay in the base layers, so purging them in a child layer saves nothing; dropping `nvidia-driver-*` from `latest/Dockerfile` would shrink both images. The CPU image's pinned Ollama tarball is reused when it is byte-identical to the GPU layer's pin, so it is not stored twice. Since 2026-10 the CPU image no longer bakes `nvidia-driver-*`, so both images are ~1.1 GB smaller than these figures.
 
 ### DE tool settings (GPU)
 
@@ -230,3 +230,30 @@ Makefile                        local build/push/run (+ pull-base, build-gpu, te
 
 - [CyVerse VICE apps](https://learning.cyverse.org/vice/) · [GoCommands](https://learning.cyverse.org/ds/gocommands/) · [AI Verde](https://aiverde-docs.cyverse.ai/) · [MESA docs](https://idss-mesa.github.io/docs/)
 - Upstream: [cyverse-vice/vscode](https://github.com/cyverse-vice/vscode) · MESA org: <https://github.com/idss-mesa>
+
+## AI Sandbox variants (`:sandbox`, `:gpu-sandbox`)
+
+The `:latest` and `:gpu` images keep passwordless `sudo` on purpose: VICE lets a
+human modify the environment they are working in. The **AI Sandbox** variants
+(`sandbox/Dockerfile`) are the same images with every path from UID 1000 to root
+removed, for sessions driven by AI agents (Claude Code, Codex, OpenCode, Goose,
+Antigravity):
+
+- `sudo` purged (package, `/etc/sudoers*`, group memberships); `su`/`pkexec` cannot switch user
+- no setuid/setgid binaries and no file capabilities anywhere in the image
+- every account password locked, `/etc/passwd` and `/etc/group` not group-writable, no world-writable system files
+- `MESA_SANDBOX=1` in every shell and a marker at `/etc/mesa/sandbox`
+
+Build, test and push (the sandbox layers on the **published** base, so pull or
+build `:latest`/`:gpu` first):
+
+```bash
+make build-sandbox test-sandbox push-sandbox             # :sandbox      <- :latest
+make build-gpu-sandbox test-gpu-sandbox push-gpu-sandbox # :gpu-sandbox  <- :gpu
+```
+
+`sandbox/test-sandbox.sh` starts the image as VICE does (UID 1000) and fails if
+`sudo`, a setuid file, a file capability, a root process or a writable `/etc`
+is found, or if the app does not answer. `harbor-sandbox.yml` is the manual
+GitHub workflow equivalent. Register each sandbox tag as its own DE tool
+(same spec as the base tool).
