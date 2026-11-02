@@ -28,8 +28,8 @@
     },
     "filesystem": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/config", "/home/vscode/data-store"],
+      "command": "/config/.npm-global/bin/mcp-server-filesystem",
+      "args": ["/config", "/home/vscode/data-store"],
       "env": {}
     }
   }

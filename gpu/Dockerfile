@@ -120,16 +120,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
         echo 'NVIDIA driver userspace must not be baked into the image' >&2; exit 1; fi && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Ollama (pinned, sha256-checked; never install.sh). The CPU image pipes
-# install.sh: drop its unused `ollama` system user, home and systemd unit (no
-# systemd in VICE). Its binary + runners (2.1 GB) are kept only when they are
-# byte-identical to the pinned tarball, because replacing identical files in
-# this child layer would duplicate them; otherwise the tarball replaces them.
-# :latest pulls the newest Ollama on every (weekly) rebuild, so when the build
-# log warns below, bump OLLAMA_VERSION + OLLAMA_SHA256 to the CPU image's
-# version (hash: the release's sha256sum.txt) to keep :gpu ~2 GB smaller.
-ARG OLLAMA_VERSION=0.34.4
-ARG OLLAMA_SHA256=c238986e61d40c0cc5f4a9b9e40b9eea104350b77efa34741fc134e105cb9533
+# Ollama (pinned, sha256-checked; never install.sh). The CPU image now installs
+# the same pinned tarball (latest/Dockerfile ARG OLLAMA_VERSION); keep the two
+# pins equal so this layer reuses the base's binary + runners (2 GB) instead of
+# storing a second copy. The user/unit cleanup below is kept for older bases
+# that were built from install.sh.
+ARG OLLAMA_VERSION=0.40.11
+ARG OLLAMA_SHA256=7bedab90dd122661be78798e9f0edf37fccf0cccf2699d2c58ea1a3afdc04b6d
 RUN rm -rf /usr/share/ollama /etc/systemd/system/ollama.service && \
     (! id ollama >/dev/null 2>&1 || userdel ollama) && \
     (! getent group ollama >/dev/null || groupdel ollama) && \

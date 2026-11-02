@@ -47,7 +47,7 @@
     },
     "filesystem": {
       "type": "local",
-      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/config", "/home/vscode/data-store"],
+      "command": ["/config/.npm-global/bin/mcp-server-filesystem", "/config", "/home/vscode/data-store"],
       "enabled": true
     }
   }
