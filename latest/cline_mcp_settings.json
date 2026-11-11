@@ -24,10 +24,8 @@
     "filesystem": {
       "timeout": 60,
       "type": "stdio",
-      "command": "npx",
+      "command": "/config/.npm-global/bin/mcp-server-filesystem",
       "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
         "/config",
         "/home/vscode/data-store"
       ]
